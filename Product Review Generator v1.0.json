@@ -1,0 +1,661 @@
+{
+  "name": "Product Review Generator v1.0",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "product-review",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "35e4f275-cbb3-4a90-8d14-dcf6f83ea1f6",
+      "name": "Product URL Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        2464,
+        992
+      ],
+      "webhookId": "bb9e03eb-a22f-49e3-9ee6-88a0a1ac03b0"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "googleSearchApiKey",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "googleSearchEngineId",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "8cc1f7d0-7c60-4670-88a0-ffe7ab70f306",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2688,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all(); const productDetails = items.map((item) => { const urlParts = item?.json?.body?.productUrl.split(\"/\"); const productInfo = urlParts[urlParts.length - 3]; return { productInfo}; }); return productDetails;"
+      },
+      "id": "9a89f0a2-53c7-44cd-b229-4cc42cc4c69f",
+      "name": "Extract Product Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/customsearch/v1?key={{ $('Workflow Configuration').first().json.googleSearchApiKey }}&cx={{ $('Workflow Configuration').first().json.googleSearchEngineId }}&q={{ $json.productInfo }}+reviews+site:amazon.com+OR+site:amazon.in+OR+site:flipkart.com+OR+site:reliancedigital.in+OR+site:walmart.com+OR+site:target.com+OR+site:homedepot.com+OR+site:sephora.com+OR+site:ulta.com+OR",
+        "options": {}
+      },
+      "id": "84aad26b-92c5-4240-ad9b-a96c7faa420f",
+      "name": "Search Ecommerce Sites",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3136,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/customsearch/v1?key={{ $('Workflow Configuration').first().json.googleSearchApiKey }}&cx={{ $('Workflow Configuration').first().json.googleSearchEngineId }}&q={{ encodeURIComponent($json.productInfo) }}+review+OR+worth+OR+problems+site:quora.com+OR+site:news.ycombinator.com+OR+site:stackexchange.com\n",
+        "options": {}
+      },
+      "id": "951981b0-43c0-45e5-81a5-6f34f5e5ab2e",
+      "name": "Search Discussion Forums",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3136,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.first().json.items || []; const productName = $input.first().json.productName; return items.map(item => ({ url: item.link, title: item.title, snippet: item.snippet, productName }));"
+      },
+      "id": "95f4570b-53d0-4375-a43c-d398559e4358",
+      "name": "Split Ecommerce Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.first().json.items || []; const productName = $input.first().json.productName; return items.map(item => ({ url: item.link, title: item.title, snippet: item.snippet, productName }));"
+      },
+      "id": "7cec0c17-83dc-4578-8452-39cf803c31d1",
+      "name": "Split Forum Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.firecrawl.dev/v2/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"url\": \"{{ $json.url }}\",\n    \"formats\": [\"html\"]\n  } ",
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "timeout": 10000
+        }
+      },
+      "id": "4fa46776-bcfa-4653-864b-b1b259e7d8aa",
+      "name": "Fetch Forum Pages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3584,
+        1088
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "KZyQfqYOKmHnjjqH",
+          "name": "Bearer Auth account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "reviewText",
+              "cssSelector": "[itemprop=\"reviewBody\"], .review-text, .review-content, [data-hook=\"review-body\"], .a-expander-content, .review-body, .comment, .post, div[class*=\"review\"] p, div[class*=\"comment\"] p",
+              "returnArray": true
+            },
+            {
+              "key": "reviewRating",
+              "cssSelector": ".review-rating, [data-hook='review-star-rating'], .a-icon-star",
+              "returnArray": true
+            },
+            {
+              "key": "reviewAuthor",
+              "cssSelector": ".review-author, [data-hook='review-author'], .author",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {
+          "trimValues": true,
+          "cleanUpText": true
+        }
+      },
+      "id": "9d411c4b-823b-4460-b525-ae84103e5cc9",
+      "name": "Extract Ecommerce Reviews",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        3808,
+        896
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "dataPropertyName": "=data.html",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "Question",
+              "cssSelector": ".puppeteer_test_question_title, .question_text, h1, [class*=\"question\"]",
+              "returnArray": true
+            },
+            {
+              "key": "Answer",
+              "cssSelector": ".Answer, .answer, [class*=\"answer\"], p, div[class*=\"content\"]",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {
+          "trimValues": true,
+          "cleanUpText": true
+        }
+      },
+      "id": "5bade802-cf84-4d58-99c5-b25652252b52",
+      "name": "Extract Forum Reviews",
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        3808,
+        1088
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.0-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.0-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a product review analyst AI. Analyze the following aggregated review data and extract structured, actionable insights:\n\nProduct Name: {{ $('Extract Product Info').item.json.productInfo }}\n\nReview Data: {{ JSON.stringify($json.data) }}\n\nGenerate a structured JSON analysis with the following fields:\n\nproduct_name: Use the provided product name.\n\noverall_sentiment: Calculate overall sentiment of all reviews, broken down as percentages of positive, negative, and neutral opinions. Include a brief summary statement (e.g., \"Overall sentiment is mostly positive with minor complaints about battery life\").\n\nkey_features: Identify main product features mentioned in reviews (e.g., battery, display, camera, performance). For each feature, provide:\n\nfeature_name\n\nfeature_sentiment: Percentages of positive, negative, neutral mentions\n\nkey_observations: Short bullet points summarizing recurring points\n\nrepresentative_quotes: 1–2 relevant user quotes\n\npros: Top 5 most frequently mentioned positive aspects across all reviews.\n\ncons: Top 5 most frequently mentioned negative aspects across all reviews.\n\ncommon_themes: Recurring topics or patterns observed across reviews (e.g., setup issues, value for money, durability).\n\nuser_quotes: 5–7 representative quotes capturing both positive and negative experiences.\n\nrating_summary: Calculate average rating if available, or provide a derived score based on sentiment.\n\nInstructions:\n\nAnalyze all reviews; do not summarize only a few.\n\nSentiment must reflect both the overall product experience and feature-specific perceptions.\n\nReturn ONLY valid JSON"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "id": "2810fd22-035b-43af-861c-e2b3aabf4bc5",
+      "name": "Extract Features & Sentiment",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        4928,
+        992
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-2.0-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an AI content generator for product reviews. Using the provided product analysis data, generate a comprehensive, ready-to-publish HTML blog post. The HTML must be clean, fully structured, semantic, visually appealing, and free of \\n characters that break HTML rendering.\n\nInput Analysis Data:\n{{ JSON.stringify($json) }}\n\nBlog Title:\n\"{{ $('Extract Product Info').item.json.productInfo }} Honest Review\"\n\nRequired Structure & Content:\n\nIntroduction (<header> or <section> with <h2>):\n\n2-3 concise, engaging paragraphs\n\nInclude product overview, why the review matters, and sources analyzed\n\nSet context for readers and build trust\n\nPros & Cons (<section class=\"pros-cons\"> with <h2> + <ul>):\n\nTop 5 pros and top 5 cons, clearly highlighted\n\nUse <li> for readability and actionable points\n\nReflect actual user sentiment\n\nFeature Analysis (<section class=\"feature-section\"> with <h2> + <h3> per feature):\n\nFeature name and description\n\nSentiment breakdown: positive/negative/neutral percentages\n\nInclude 1–2 real user quotes in <blockquote> per feature\n\nKey observations in <ul>\n\nUser Opinions (<section> with <h2>):\n\nCategorize by user type (casual, power, expert)\n\nInclude authentic quotes in <blockquote>\n\nHighlight recurring themes or patterns\n\nVerdict (<section class=\"verdict\"> with <h2>):\n\nOverall rating out of 5 stars\n\nWho should buy / who should avoid\n\nConcise final thoughts and recommendation\n\nFormatting & Style Requirements:\n\nUse semantic HTML5 tags: <article>, <section>, <header>, <footer>, <h1>–<h3>, <blockquote>, <ul>, <li>\n\nApply CSS classes: .review-header, .pros-cons, .feature-section, .verdict\n\nMaintain clear heading hierarchy and consistent formatting\n\nEnsure readability, professional yet engaging tone\n\nIncorporate all relevant insights from the input JSON\n\nAvoid any characters that break HTML structure\n\nAI Enhancements:\n\nKeep tone friendly, professional, and authentic\n\nMake paragraphs concise, human-readable, and engaging\n\nReflect real user sentiment accurately\n\nEnsure consistent formatting across sections\n\nInclude actionable, clear insights for readers\n\nOutput:\n\nOnly clean, ready-to-publish HTML\n\nNo explanations, comments, or additional text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "67cf4dcd-78ae-44d7-a783-82e9a112f4ac",
+      "name": "Generate Blog Post",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        5280,
+        992
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.reviewText.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "4f782d07-2033-4168-8f20-a033126d319e",
+      "name": "Filter Empty Ecommerce Reviews",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        4032,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "c6ed079a-e762-4109-8b4c-7da672e1ca4e",
+      "name": "Aggregate All Reviews",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4480,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const aggregatedData = $input.first().json.data || []; const allReviews = []; aggregatedData.forEach(item => { if (Array.isArray(item.reviewText)) { item.reviewText.forEach((text, index) => { if (text && text.trim()) { allReviews.push({ reviewText: text.trim(), reviewRating: Array.isArray(item.reviewRating) ? item.reviewRating[index] || '' : item.reviewRating || '', reviewAuthor: Array.isArray(item.reviewAuthor) ? item.reviewAuthor[index] || '' : item.reviewAuthor || '' }); } }); } else if (item.reviewText && item.reviewText.trim()) { allReviews.push({ reviewText: item.reviewText.trim(), reviewRating: item.reviewRating || '', reviewAuthor: item.reviewAuthor || '' }); } if (Array.isArray(item.Answer)) { item.Answer.forEach((answer, index) => { if (answer && answer.trim()) { allReviews.push({ reviewText: answer.trim(), reviewRating: '', reviewAuthor: '', source: 'forum', question: Array.isArray(item.Question) ? item.Question[index] || '' : item.Question || '' }); } }); } else if (item.Answer && item.Answer.trim()) { allReviews.push({ reviewText: item.Answer.trim(), reviewRating: '', reviewAuthor: '', source: 'forum', question: item.Question || '' }); } }); return [{ json: { data: allReviews, productName: $('Extract Product Info').first().json.productName } }];"
+      },
+      "id": "d0f712f9-4cd5-46ef-9c2c-ff30a3b81cc5",
+      "name": "Flatten and Clean Reviews",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4704,
+        992
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "9b1b81e3-ea19-44dd-aed1-5ef1e580ecbc",
+      "name": "Merge All Reviews",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4256,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.Answer.length > 0 }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "eb49e6e1-97f0-4032-9beb-44a7d1a7750f",
+      "name": "Filter Empty Forum Reviews",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        4032,
+        1088
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; n8n bot)"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,/;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "en-US,en;q=0.9"
+            },
+            {
+              "name": "Referer",
+              "value": "https://www.google.com/"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "timeout": 10000
+        }
+      },
+      "id": "51b2331a-05b8-4ff0-91c0-e9df588fa360",
+      "name": "Fetch Ecommerce Pages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3584,
+        896
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.content }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "85597944-7f1b-4f80-b4a3-b4601ea69a43",
+      "name": "Return Blog Post1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        5632,
+        992
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Product URL Input": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Extract Product Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Product Info": {
+      "main": [
+        [
+          {
+            "node": "Search Ecommerce Sites",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search Discussion Forums",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Ecommerce Sites": {
+      "main": [
+        [
+          {
+            "node": "Split Ecommerce Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Discussion Forums": {
+      "main": [
+        [
+          {
+            "node": "Split Forum Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Ecommerce Results": {
+      "main": [
+        [
+          {
+            "node": "Fetch Ecommerce Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Forum Results": {
+      "main": [
+        [
+          {
+            "node": "Fetch Forum Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Forum Pages": {
+      "main": [
+        [
+          {
+            "node": "Extract Forum Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Ecommerce Reviews": {
+      "main": [
+        [
+          {
+            "node": "Filter Empty Ecommerce Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Forum Reviews": {
+      "main": [
+        [
+          {
+            "node": "Filter Empty Forum Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Features & Sentiment": {
+      "main": [
+        [
+          {
+            "node": "Generate Blog Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Blog Post": {
+      "main": [
+        [
+          {
+            "node": "Return Blog Post1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Empty Ecommerce Reviews": {
+      "main": [
+        [
+          {
+            "node": "Merge All Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate All Reviews": {
+      "main": [
+        [
+          {
+            "node": "Flatten and Clean Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten and Clean Reviews": {
+      "main": [
+        [
+          {
+            "node": "Extract Features & Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Reviews": {
+      "main": [
+        [
+          {
+            "node": "Aggregate All Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Empty Forum Reviews": {
+      "main": [
+        [
+          {
+            "node": "Merge All Reviews",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Fetch Ecommerce Pages": {
+      "main": [
+        [
+          {
+            "node": "Extract Ecommerce Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "06b2623f-5127-4410-a4b7-2931d924a265",
+  "meta": {
+    "instanceId": "20be40dda7149dd36fa9cbec165d834022288f9ddf8acae964c82e0a6fd9a5ca"
+  },
+  "id": "4uXgUx0Z1TkDyJoJ",
+  "tags": []
+}
