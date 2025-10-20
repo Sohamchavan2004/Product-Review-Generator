@@ -139,7 +139,7 @@
       ],
       "credentials": {
         "httpBearerAuth": {
-          "id": "KZyQfqYOKmHnjjqH",
+          "id": "",
           "name": "Bearer Auth account"
         }
       },
