@@ -1,106 +1,103 @@
-Product Review Aggregator Workflow
+# 🛠 Product Review Aggregator Workflow
 
-This n8n workflow automates the collection, analysis, and blog generation of product reviews from e-commerce platforms and discussion forums. It produces a clean, ready-to-publish HTML blog post summarizing user sentiment and feature insights.
+Automate the collection, analysis, and blog generation of product reviews from e-commerce platforms and discussion forums using n8n. This workflow produces a clean, ready-to-publish HTML blog post summarizing user sentiment and feature insights for any product URL.
 
-Overview
+---
 
-The workflow takes a product URL as input, collects reviews from multiple sources, analyzes sentiment and features, and generates a complete HTML blog post. It is designed to help content creators and reviewers quickly produce structured product reviews with minimal manual effort.
+## 🚀 Overview
 
-How It Works
-Input
+This workflow streamlines the entire product review process:
+- Input a product URL.
+- Aggregate reviews from multiple sources.
+- Analyze feature sentiment using AI.
+- Generate a fully structured HTML blog post for publishing.
 
-A product URL is sent to the n8n webhook via a POST request:
+Ideal for content creators, tech bloggers, and reviewers who want to quickly produce detailed product reviews with minimal manual effort.
 
+---
+
+## ⚙️ How It Works
+
+### **1. Input**
+Send a product URL to the n8n webhook via a POST request:
+```json
 {
-"productUrl": "<PRODUCT_URL>"
+  "productUrl": "<PRODUCT_URL>"
 }
+```
 
-Workflow Steps
+### **2. Workflow Steps**
 
-Product Info Extraction
+#### **Product Info Extraction**
+- Parses the product page to extract key details (name, variant, specifications).
 
-Extracts key product details like name, variant, and specifications.
+#### **Review Aggregation**
+- Searches e-commerce sites (Flipkart, Amazon, Walmart, etc.) and forums (Quora, StackExchange, Reddit) for user reviews.
+- Uses [Firecrawl](https://firecrawl.dev/) as the main scraper for robust data extraction.
 
-Review Aggregation
+#### **Review Cleaning**
+- Removes HTML tags, duplicates, and irrelevant text for cleaner analysis.
 
-Searches e-commerce sites (Flipkart, Amazon, Walmart, etc.) and forums (Quora, StackExchange, Reddit) for user reviews.
+#### **Feature & Sentiment Analysis**
+- Analyzes reviews for key product features (e.g., display, camera, battery).
+- Categorizes sentiments: positive, negative, or neutral.
+- Powered by AI (Google Gemini / PaLM API) for high-quality insights.
 
-Uses Firecrawl as the scraper for robust data extraction.
+#### **HTML Blog Generation**
+- Produces a ready-to-publish HTML post with:
+  - **Header:** Product title and summary
+  - **Pros & Cons:** Highlights top positives and negatives
+  - **Feature Analysis:** Detailed insights per feature with sentiment
+  - **User Opinions:** Key quotes from real users
+  - **Verdict:** Overall rating and purchase recommendations
 
-Review Cleaning
-
-Removes HTML tags, duplicates, and irrelevant text to prepare for analysis.
-
-Feature & Sentiment Analysis
-
-Analyzes reviews for key product features (display, camera, battery, etc.) and categorizes them as positive, negative, or neutral.
-
-Uses AI (Google Gemini / PaLM API) for high-quality analysis.
-
-HTML Blog Generation
-
-Generates a ready-to-publish HTML post including:
-
-Header: Product title and summary
-
-Pros & Cons: Highlighting top positives and negatives
-
-Feature Analysis: Detailed insights for each feature with sentiment
-
-User Opinions: Key quotes from actual users
-
-Verdict: Overall rating and purchase recommendations
-
-Output
-
-The workflow returns a JSON object containing the HTML blog post:
-
+### **3. Output**
+Returns a JSON object containing the full HTML blog post:
+```json
 {
-"parts": [
-{
-"text": "<!DOCTYPE html> ... </html>"
+  "parts": [
+    {
+      "text": "<!DOCTYPE html> ... </html>"
+    }
+  ]
 }
-]
-}
+```
+HTML includes all structured sections, ready for publishing.
 
-HTML includes all structured sections ready for publishing.
+---
 
-How to Add a New Product
+## ➕ How to Add a New Product
 
-Send a POST request to the webhook URL with the product URL:
-
-curl -X POST "https://<your-n8n-instance>/webhook/product-review"
--H "Content-Type: application/json"
+Send a POST request to the webhook endpoint with your product URL:
+```bash
+curl -X POST "https://<your-n8n-instance>/webhook/product-review" \
+-H "Content-Type: application/json" \
 -d '{"productUrl": "<PRODUCT_URL>"}'
+```
+The workflow will process the URL and return a structured HTML review.
 
-The workflow will automatically process the URL and return a fully structured HTML review.
+---
 
-Required Credentials
+## 🔑 Required Credentials
 
-Google Custom Search API: For review aggregation
+- **Google Custom Search API**
+  - API Key
+  - Search Engine ID
+- **Firecrawl Scraper API**
+- **Google Gemini / PaLM API** (for sentiment & feature analysis)
 
-API Key
+**⚠️ Ensure all credentials are configured in n8n before running the workflow.**
 
-Search Engine ID
+---
 
-Firecrawl Scraper API: For fetching page content
+## 🛠 Enhancements
 
-Google Gemini / PaLM API: For sentiment and feature analysis
+- Use paid or more advanced scraping APIs for improved data extraction.
+- Upgrade to higher-tier AI models for better feature extraction and blog quality.
 
-⚠️ Make sure all credentials are configured in n8n before running the workflow.
 
-Output Summary
+---
 
-HTML blog post with full review ready for publishing
+## 🙋‍♂️ Support & Contributions
 
-Structured sections: Header, Pros & Cons, Feature Analysis, User Opinions, Verdict
-
-Sentiment and feature insights embedded for each section
-
-Enhancements
-
-Use paid or more advanced scraping APIs for better forum and website data extraction.
-
-Use a higher-tier AI model for improved feature extraction and blog generation quality.
-
-Add more data sources or customize feature analysis as needed.
+Feel free to open issues or pull requests for enhancements and bug fixes!
